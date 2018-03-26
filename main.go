@@ -10,10 +10,10 @@ import (
 func main() {
 	var duration, interval, rate, size, runs int
 	flag.IntVar(&rate, "rate", 1, "How many log entries per second.")
-	flag.IntVar(&size, "size", 1024, "How many bytes does one log entry contains.")
+	flag.IntVar(&size, "size", 128, "How many bytes does one log entry contains.")
 	flag.IntVar(&runs, "runs", 1, "How many rounds should it runs.")
-	flag.IntVar(&duration, "duration", 60, "How long is one round, in seconds.")
-	flag.IntVar(&interval, "interval", 60, "How long should it wait between each round, in seconds.")
+	flag.IntVar(&duration, "duration", 5, "How long is one round, in seconds.")
+	flag.IntVar(&interval, "interval", 1, "How long should it wait between each round, in seconds.")
 	flag.Parse()
 
 	pipe := make(chan bool, rate)
@@ -57,7 +57,7 @@ mainloop:
 
 	end_time := time.Now().UTC()
 	fmt.Printf(
-		`{"EventStats":{"startTime":"%v","endTime":"%v","size":%d,"rate":%d,"duration":%d,"interval":%d,"run_stats":[`, start_time, end_time, size, rate, duration, interval,
+		`{"EventStats":{"startTime":"%v","endTime":"%v","runs":%d,"size":%d,"rate":%d,"duration":%d,"interval":%d,"run_stats":[`, start_time, end_time, runs, size, rate, duration, interval,
 	)
 	var stats_strings []string
 	for _, s := range stats {
