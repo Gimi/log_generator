@@ -50,6 +50,7 @@ mainloop:
 			time.Sleep(time.Duration(interval) * time.Second)
 
 			log = prepareLogEntry(start_time, size, rate, run)
+			pipe = make(chan bool, rate)
 			timeout = time.After(time.Duration(duration) * time.Second)
 			one_sec = time.After(time.Second)
 		}
@@ -60,6 +61,7 @@ mainloop:
 		`{"EventStats":{"startTime":"%v","endTime":"%v","runs":%d,"size":%d,"rate":%d,"duration":%d,"interval":%d,"run_stats":[`, start_time, end_time, runs, size, rate, duration, interval,
 	)
 	var stats_strings []string
+	total := 0
 	for _, s := range stats {
 		var b strings.Builder
 		b.WriteString(`{"eachSecond":[`)
@@ -71,9 +73,10 @@ mainloop:
 		}
 		sum += s[last]
 		b.WriteString(fmt.Sprintf(`%d], "totalGenerated": %v}`, s[last], sum))
+		total += sum
 		stats_strings = append(stats_strings, b.String())
 	}
-	fmt.Printf("%v]}", strings.Join(stats_strings, ","))
+	fmt.Printf(`%v],"total": %d}}`, strings.Join(stats_strings, ","), total)
 }
 
 func prepareLogEntry(start_time time.Time, size, rate, run int) string {
