@@ -8,13 +8,20 @@ import (
 )
 
 func main() {
-	var duration, interval, rate, size, runs int
+	var duration, interval, rate, size, runs, delay int
 	flag.IntVar(&rate, "rate", 1, "How many log entries per second.")
 	flag.IntVar(&size, "size", 128, "How many bytes does one log entry contains.")
 	flag.IntVar(&runs, "runs", 1, "How many rounds should it runs.")
 	flag.IntVar(&duration, "duration", 5, "How long is one round, in seconds.")
 	flag.IntVar(&interval, "interval", 1, "How long should it wait between each round, in seconds.")
+	flag.IntVar(&delay, "delay", 0, "How much time to wait before generate logs for the first run, in seconds.")
 	flag.Parse()
+
+	if delay > 0 {
+		select {
+		case <-time.After(time.Duration(delay) * time.Second):
+		}
+	}
 
 	pipe := make(chan bool, rate)
 	stats := make([][]int, 0, runs)

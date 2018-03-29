@@ -16,3 +16,6 @@ tag: docker
 
 push: tag
 	docker push ${HUB_REPO}/${IMAGE_NAME}:${IMAGE_VERSION}
+
+clean:
+	@rm -f genlog
