@@ -11,7 +11,7 @@ func main() {
 	var duration, interval, rate, size, runs, delay int
 	var hold bool
 	flag.IntVar(&rate, "rate", 1, "How many log entries per second.")
-	flag.IntVar(&size, "size", 128, "How many bytes does one log entry contains.")
+	flag.IntVar(&size, "size", 128, "How many bytes does one log entry contains (do not use too small sizes).")
 	flag.IntVar(&runs, "runs", 1, "How many rounds should it runs.")
 	flag.IntVar(&duration, "duration", 5, "How long is one round, in seconds.")
 	flag.IntVar(&interval, "interval", 1, "How long should it wait between each round, in seconds.")
@@ -20,9 +20,7 @@ func main() {
 	flag.Parse()
 
 	if delay > 0 {
-		select {
-		case <-time.After(time.Duration(delay) * time.Second):
-		}
+		time.Sleep(time.Duration(delay) * time.Second)
 	}
 
 	pipe := make(chan bool, rate)
@@ -30,8 +28,9 @@ func main() {
 	run_stats := make([]int, 0, duration)
 
 	run := 0
+	count := 0
 	start_time := time.Now().UTC()
-	log := prepareLogEntry(start_time, size, rate, run)
+	log := prepareLogEntry(size, rate, run, duration)
 
 	timeout := time.After(time.Duration(duration) * time.Second)
 	one_sec := time.After(time.Second)
@@ -40,25 +39,27 @@ mainloop:
 	for {
 		select {
 		case pipe <- true:
-			fmt.Println(log)
+			fmt.Printf(log, count)
 		case <-one_sec:
 			run_stats = append(run_stats, len(pipe))
 			pipe = make(chan bool, rate)
+			count++
 			one_sec = time.After(time.Second)
 		case <-timeout:
-			count := len(pipe)
-			if count > 0 {
-				run_stats = append(run_stats, count)
+			if len(run_stats) < cap(run_stats) {
+				// this means it didn't get the stats for the last second
+				run_stats = append(run_stats, len(pipe))
 			}
 			stats = append(stats, run_stats)
 			run++
 			if run >= runs {
 				break mainloop
 			}
-			run_stats = make([]int, 0, duration)
 			time.Sleep(time.Duration(interval) * time.Second)
 
-			log = prepareLogEntry(start_time, size, rate, run)
+			run_stats = make([]int, 0, duration)
+			count = 0
+			log = prepareLogEntry(size, rate, run, duration)
 			pipe = make(chan bool, rate)
 			timeout = time.After(time.Duration(duration) * time.Second)
 			one_sec = time.After(time.Second)
@@ -92,18 +93,18 @@ mainloop:
 	}
 }
 
-func prepareLogEntry(start_time time.Time, size, rate, run int) string {
+func prepareLogEntry(size, rate, run, duration int) string {
 	var b strings.Builder
-	b.WriteString(start_time.Format(time.RFC1123Z))
-	b.WriteString(fmt.Sprintf(" run=%d,size=%d,rate=%d,message=", run, size, rate))
-	remains := size - b.Len()
+	width := len(fmt.Sprintf("%d", duration))
+	b.WriteString(fmt.Sprintf("run=%d,count=%%-%dd,size=%d,rate=%d,message=", run, width, size, rate))
+	verbSize := len(fmt.Sprintf("%%%dd", width))
+	remains := size - b.Len() - width + verbSize
 	if remains > 0 {
 		c := []byte{'*'}[0]
 		for i := 0; i < remains; i++ {
 			b.WriteByte(c)
 		}
-		return b.String()
-	} else {
-		return b.String()[0:size]
 	}
+	// if size is small, this will be wrong
+	return b.String()[0:size-width+verbSize] + "\n"
 }
