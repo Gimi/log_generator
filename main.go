@@ -9,12 +9,14 @@ import (
 
 func main() {
 	var duration, interval, rate, size, runs, delay int
+	var hold bool
 	flag.IntVar(&rate, "rate", 1, "How many log entries per second.")
 	flag.IntVar(&size, "size", 128, "How many bytes does one log entry contains.")
 	flag.IntVar(&runs, "runs", 1, "How many rounds should it runs.")
 	flag.IntVar(&duration, "duration", 5, "How long is one round, in seconds.")
 	flag.IntVar(&interval, "interval", 1, "How long should it wait between each round, in seconds.")
 	flag.IntVar(&delay, "delay", 0, "How much time to wait before generate logs for the first run, in seconds.")
+	flag.BoolVar(&hold, "hold", false, "Determines should it wait the amount of time specified by interval before exits.")
 	flag.Parse()
 
 	if delay > 0 {
@@ -84,6 +86,10 @@ mainloop:
 		stats_strings = append(stats_strings, b.String())
 	}
 	fmt.Printf(`%v],"total": %d}}`, strings.Join(stats_strings, ","), total)
+
+	if hold {
+		time.Sleep(time.Duration(interval) * time.Second)
+	}
 }
 
 func prepareLogEntry(start_time time.Time, size, rate, run int) string {

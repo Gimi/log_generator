@@ -1,6 +1,9 @@
 IMAGE_NAME?=genlog
-IMAGE_VERSION?=0.0.1
+IMAGE_VERSION?=$(shell git describe --tags | tr -d 'v')
 HUB_REPO?=gimil
+
+show_version:
+	@echo ${IMAGE_VERSION}
 
 genlog:
 	GOOS=linux GOARCH=amd64 go build -o genlog ./main.go
